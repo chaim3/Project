@@ -9,17 +9,18 @@ class NetworkListener:
         self.port = port
         self.callback = callback
         self.running = True
+        self.sock = None
 
     def start(self):
         threading.Thread(target=self.listen, daemon=True).start()
 
     def listen(self):
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((self.host, self.port))
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.connect((self.host, self.port))
 
             while self.running:
-                data = sock.recv(1024)
+                data = self.sock.recv(1024)
                 if not data:
                     break
 
@@ -30,3 +31,18 @@ class NetworkListener:
 
         except Exception as e:
             print("Network error:", e)
+        finally:
+            if self.sock is not None:
+                try:
+                    self.sock.close()
+                except Exception:
+                    pass
+                self.sock = None
+
+    def stop(self):
+        self.running = False
+        if self.sock is not None:
+            try:
+                self.sock.shutdown(socket.SHUT_RDWR)
+            except Exception:
+                pass

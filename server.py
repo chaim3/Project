@@ -4,6 +4,19 @@ import socket
 import threading
 import time
 import random
+import argparse
+from encryption_manager import EncryptionManager, encode_encrypted_event
+
+
+def parse_server_args():
+    parser = argparse.ArgumentParser(description="Cyber Snake event server")
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Bind host/IP (use 0.0.0.0 to accept remote clients)",
+    )
+    parser.add_argument("--port", type=int, default=5000, help="Bind TCP port")
+    return parser.parse_args()
 
 class SnakeServer:
     def __init__(self, host, port):
@@ -11,9 +24,11 @@ class SnakeServer:
         self.port = port
         self.clients = []
         self.running = True
+        self.enc_mgr = EncryptionManager()
 
     def start(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind((self.host, self.port))
         server_socket.listen(5)
         print(f"Server listening on {self.host}:{self.port}")
@@ -29,26 +44,21 @@ class SnakeServer:
         self.clients.append(client_socket)
         try:
             while self.running:
-                # For simplicity, server doesn't read from clients, just sends events
-                time.sleep(1)
-        except:
+                data = client_socket.recv(1)
+                if not data:
+                    break
+        except OSError:
             pass
         finally:
-            self.clients.remove(client_socket)
+            if client_socket in self.clients:
+                self.clients.remove(client_socket)
             client_socket.close()
 
     def broadcast_events(self):
-        events = ["SPEED+", "SPEED-", "FOOD+", "ENCRYPT|BONUS_SPEED", "ENCRYPT|BONUS_FOOD", "ENCRYPT|BONUS_INVINCIBLE"]
+        events = ["SPEED+", "SPEED-", "FOOD+", "BONUS_SPEED", "BONUS_FOOD", "BONUS_INVINCIBLE"]
         while self.running:
             time.sleep(random.randint(5, 15))  # Random event every 5-15 seconds
-            event = random.choice(events)
-            if event.startswith("ENCRYPT|"):
-                # Encrypt the bonus
-                from encryption_manager import EncryptionManager
-                enc_mgr = EncryptionManager()
-                bonus = event.split("|")[1]
-                encrypted = enc_mgr.encrypt_text(bonus)
-                event = f"ENCRYPT|{encrypted}"
+            event = encode_encrypted_event(random.choice(events), self.enc_mgr)
             self.send_to_all(f"EVENT:{event}")
 
     def send_to_all(self, message):
@@ -59,5 +69,6 @@ class SnakeServer:
                 self.clients.remove(client)
 
 if __name__ == "__main__":
-    server = SnakeServer("127.0.0.1", 5000)
+    args = parse_server_args()
+    server = SnakeServer(args.host, args.port)
     server.start()
