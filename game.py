@@ -5,12 +5,7 @@ import argparse
 from snake import Snake
 from food import Food
 from network_listener import NetworkListener
-from encryption_manager import (
-    ENCRYPT_PREFIX,
-    EncryptionManager,
-    decode_encrypted_event,
-    is_valid_transport_event,
-)
+from encryption_manager import EncryptionManager
 import os
 
 WIDTH = 600
