@@ -10,6 +10,7 @@ class NetworkListener:
         self.callback = callback
         self.running = True
         self.sock = None
+        self.buffer = ""
 
     def start(self):
         threading.Thread(target=self.listen, daemon=True).start()
@@ -24,10 +25,12 @@ class NetworkListener:
                 if not data:
                     break
 
-                msg = data.decode("utf-8", errors="ignore").strip()
-                if msg.startswith("EVENT:"):
-                    event = msg[6:]
-                    self.callback(event)
+                self.buffer += data.decode("utf-8", errors="ignore")
+                while "\n" in self.buffer:
+                    line, self.buffer = self.buffer.split("\n", 1)
+                    msg = line.strip()
+                    if msg.startswith("EVENT:"):
+                        self.callback(msg[6:])
 
         except Exception as e:
             print("Network error:", e)

@@ -1,11 +1,6 @@
 # client/encryption_manager.py
 
 ENCRYPT_PREFIX = "ENCRYPT|"
-VALID_TRANSPORT_PREFIXES = ("SPEED+", "SPEED-", "FOOD+", ENCRYPT_PREFIX)
-
-
-def is_valid_transport_event(event: str) -> bool:
-    return any(event.startswith(prefix) for prefix in VALID_TRANSPORT_PREFIXES)
 
 
 class EncryptionManager:
@@ -35,7 +30,9 @@ def encode_encrypted_event(event: str, enc_mgr: EncryptionManager) -> str:
 
 def decode_encrypted_event(event: str, enc_mgr: EncryptionManager) -> str:
     if not event.startswith(ENCRYPT_PREFIX):
-        return event
+        raise ValueError("Expected encrypted event")
 
     hex_data = event[len(ENCRYPT_PREFIX) :].split(" ", 1)[0]
+    if not hex_data:
+        raise ValueError("Missing encrypted payload")
     return enc_mgr.decrypt_text(hex_data)

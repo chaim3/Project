@@ -5,7 +5,11 @@ import argparse
 from snake import Snake
 from food import Food
 from network_listener import NetworkListener
-from encryption_manager import EncryptionManager
+from encryption_manager import (
+    ENCRYPT_PREFIX,
+    EncryptionManager,
+    decode_encrypted_event,
+)
 import os
 
 WIDTH = 600
@@ -75,7 +79,7 @@ class Game:
         try:
             with open("high_score.txt", "r") as f:
                 return int(f.read().strip())
-        except:
+        except (OSError, ValueError):
             return 0
 
     def save_high_score(self):
@@ -87,23 +91,20 @@ class Game:
     def handle_event(self, event):
         self.rx_count += 1
 
-        if not is_valid_transport_event(event):
+        if not event.startswith(ENCRYPT_PREFIX):
             self.log_event(event)
-            print("Invalid event received, ignoring.")
+            print("Invalid transport event, ignoring.")
             return
 
-        if event.startswith(ENCRYPT_PREFIX):
-            try:
-                decoded = decode_encrypted_event(event, self.enc_mgr)
-                self.log_event(event, decoded)
-                self.apply_event(decoded)
-            except Exception:
-                self.log_event(event)
-                print("Decryption failed, ignoring.")
+        try:
+            decoded = decode_encrypted_event(event, self.enc_mgr)
+        except ValueError:
+            self.log_event(event)
+            print("Decryption failed, ignoring.")
             return
 
-        self.log_event(event)
-        self.apply_event(event)
+        self.log_event(event, decoded)
+        self.apply_event(decoded)
 
     def log_event(self, raw_event, decoded_event=None):
         if decoded_event is None:

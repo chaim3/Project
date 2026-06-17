@@ -1,6 +1,6 @@
 # Cyber Snake
 
-A simple Tkinter Snake game with a TCP event server.
+A simple Tkinter Snake game with a TCP event server (single client).
 
 The server sends encrypted events, and the client decrypts and applies them in real time.
 
@@ -42,7 +42,7 @@ python3 server.py --host 0.0.0.0 --port 5000
 
 2. Find the server machine IP (example: `192.168.1.42`).
 
-3. On each client machine, connect to that IP:
+3. On one client machine, connect to that IP:
 
 ```bash
 python3 game.py --server-host 192.168.1.42 --server-port 5000
@@ -64,7 +64,12 @@ python3 game.py
 
 Server sends messages as:
 
-- `EVENT:ENCRYPT|<HEX_PAYLOAD>`
+- `EVENT:ENCRYPT|<HEX_PAYLOAD>\n`
+
+Notes:
+
+- Each TCP message ends with a newline so clients can safely split the stream into complete events.
+- Client accepts encrypted transport events only.
 
 Client logs encrypted event plus decrypted value, for example:
 
@@ -73,4 +78,4 @@ Client logs encrypted event plus decrypted value, for example:
 ## Notes
 
 - Encryption is XOR-based and intended for demonstration, not strong security.
-- The game still supports plain events in code for compatibility, but current server traffic is encrypted.
+- Transport flow is now one-path for simplicity: server encrypts every event, client decrypts every event.
